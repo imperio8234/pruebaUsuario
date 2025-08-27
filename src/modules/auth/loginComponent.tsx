@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, User, Lock, AlertCircle, CheckCircle, LogIn } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, AlertCircle, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/userContext';
 
 
