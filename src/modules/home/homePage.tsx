@@ -33,7 +33,7 @@ export const HomePage: React.FC = () => {
   const handleLogout = () => {
     usuarioService.logout();
     // Redirigir al login, por ejemplo:
-    window.location.href = '/login';
+    
   };
 
 
