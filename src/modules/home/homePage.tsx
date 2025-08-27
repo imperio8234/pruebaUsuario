@@ -1,6 +1,6 @@
 // src/pages/HomePage.tsx
 import React, { useState, useEffect } from 'react';
-import { usuarioService, type UserProfile, type UpdateProfileDto } from '../../services/authServices/authServices'; // Ajusta la ruta a tu servicio
+import { usuarioService, type UserProfile } from '../../services/authServices/authServices'; // Ajusta la ruta a tu servicio
 import { Header } from './components/header';
 import { ProfileView } from './components/ProfileView';
 import { ProfileForm } from './components/profileForm';
@@ -34,29 +34,6 @@ export const HomePage: React.FC = () => {
     usuarioService.logout();
     // Redirigir al login, por ejemplo:
     window.location.href = '/login';
-  };
-
-  // Manejador para guardar los cambios del perfil
-  const handleSaveProfile = async (data: UpdateProfileDto) => {
-    try {
-      const updatedProfile = await usuarioService.updatePerfil(data);
-      setProfile(updatedProfile);
-      setIsEditing(false); // Volver a la vista de perfil
-      alert('Perfil actualizado con éxito!');
-    } catch (err: any) {
-      alert(err.message || 'Error al actualizar el perfil.');
-    }
-  };
-
-  // Manejador para actualizar la foto de perfil
-  const handleUpdatePhoto = async (file: File) => {
-    try {
-      const updatedProfile = await usuarioService.updateFoto(file);
-      setProfile(updatedProfile);
-      alert('Foto de perfil actualizada!');
-    } catch (err: any) {
-      alert(err.message || 'Error al actualizar la foto.');
-    }
   };
 
 
