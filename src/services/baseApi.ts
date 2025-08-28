@@ -1,8 +1,6 @@
 import axios from 'axios';
-type env = "dev" | "pro";
-const entorno: env = import.meta.env.VITE_ENV
-const BACK_URL = entorno == "dev"? import.meta.env.VITE_API_URL_DEV : import.meta.env.VITE_API_URL;
-console.log("URL", BACK_URL, entorno)
+
+const BACK_URL = import.meta.env.VITE_API_URL;
 
 // Configuración de axios
 export const backApi = axios.create({
@@ -15,7 +13,7 @@ export const backApi = axios.create({
 // Interceptor para agregar el token automáticamente
 backApi.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem('access_token');
+    const token = sessionStorage.getItem('access');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
