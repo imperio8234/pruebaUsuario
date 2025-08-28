@@ -236,7 +236,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Actualizar foto - nota: el servicio devuelve UserProfile (legacy)
       // pero necesitamos convertirlo a UserProfileData
-      const updatedUserLegacy = await usuarioService.updateFoto(file);
+       await usuarioService.updateFoto(file);
       
       // Recargar el perfil completo para obtener la estructura actualizada
       const userProfileResponse = await usuarioService.getPerfil();
