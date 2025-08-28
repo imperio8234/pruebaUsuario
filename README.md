@@ -63,19 +63,21 @@ Editar el archivo `.env` con la configuración de tu API:
 
 ```env
 # .env
-VITE_API_BASE_URL=http://localhost:3000/api
+VITE_API_BASE_URL=http://46.202.88.87:8010/usuarios/api
 ```
 
 **Ejemplo de configuración:**
 ```env
 # Desarrollo local
-VITE_API_BASE_URL=http://localhost:8000/api
+VITE_API_BASE_URL=http://46.202.88.87:8010/usuarios/api
+VITE_API_DOCS=http://46.202.88.87:8010
 
 # Servidor de pruebas
-VITE_API_BASE_URL=https://api-prueba.aulamatriz.com/api
+VITE_API_BASE_URL=http://46.202.88.87:8010/usuarios/api
 
 # Producción
-VITE_API_BASE_URL=https://api.aulamatriz.com/api
+VITE_API_BASE_URL=http://46.202.88.87:8010/usuarios/api
+VITE_API_DOCS=http://46.202.88.87:8010
 ```
 
 ### 4. Ejecutar en modo desarrollo
@@ -195,7 +197,7 @@ npm install -D eslint-plugin-react-x eslint-plugin-react-dom
 
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
-| `VITE_API_BASE_URL` | URL base de la API | `http://localhost:3000/api` |
+| `VITE_API_BASE_URL` | URL base de la API | `http://46.202.88.87:8010/usuarios/api` |
 | `VITE_APP_NAME` | Nombre de la aplicación | `App Usuario Aula Matriz` |
 | `VITE_APP_VERSION` | Versión de la aplicación | `1.0.0` |
 
