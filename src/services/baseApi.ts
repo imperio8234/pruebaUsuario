@@ -13,7 +13,7 @@ export const backApi = axios.create({
 // Interceptor para agregar el token automáticamente
 backApi.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem('access');
+    const token = sessionStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -32,8 +32,7 @@ backApi.interceptors.response.use(
       // Token expirado, limpiar sessionStorage
       sessionStorage.removeItem('access_token');
       sessionStorage.removeItem('refresh_token');
-      // Opcional: redirigir al login
-      // window.location.href = '/login';
+      
     }
     return Promise.reject(error);
   }
