@@ -1,6 +1,8 @@
 import axios from 'axios';
-
-const BACK_URL = import.meta.env.VITE_API_URL;
+type env = "dev" | "pro";
+const entorno: env = import.meta.env.VITE_ENV
+const BACK_URL = entorno == "dev"? import.meta.env.VITE_API_URL_DEV : import.meta.env.VITE_API_URL;
+console.log("URL", BACK_URL, entorno)
 
 // Configuración de axios
 export const backApi = axios.create({
