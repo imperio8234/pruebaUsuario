@@ -39,16 +39,16 @@ export const Header: React.FC = () => {
               Hola, {user?.basic_info?.first_name || 'Usuario'}
             </span>
             {user?.basic_info?.foto ? (
-              <img 
-              title={`la ruta para optener la imagen la cual no acepta peticiones http://46.202.88.87:8010${user.basic_info.foto} `}
-                src={`http://46.202.88.87:8010${user.basic_info.foto}`} 
-                alt="Perfil" 
-                className="w-10 h-10 rounded-full object-cover border-2 border-gray-300" 
+              <img
+                title={`la ruta para optener la imagen la cual no acepta peticiones http://46.202.88.87:8010${user.basic_info.foto} `}
+                src={`http://46.202.88.87:8010${user.basic_info.foto}`}
+                alt="Perfil"
+                className="w-10 h-10 rounded-full object-cover border-2 border-gray-300"
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-lg">
-                {user?.basic_info ? 
-                  getInitials(user.basic_info.first_name, user.basic_info.last_name) : 
+                {user?.basic_info ?
+                  getInitials(user.basic_info.first_name, user.basic_info.last_name) :
                   <UserCircle />
                 }
               </div>
@@ -65,10 +65,10 @@ export const Header: React.FC = () => {
               </div>
               <a
                 href="#profile"
-                onClick={(e) => { 
-                  e.preventDefault(); 
-                  setMenuOpen(false); 
-                  /* Lógica para ir al perfil */ 
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMenuOpen(false);
+                  /* Lógica para ir al perfil */
                 }}
                 className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
