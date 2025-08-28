@@ -1,311 +1,281 @@
-// src/components/ProfileView.tsx
 import React from 'react';
-import { useAuth } from '../../../context/userContext'; // Ajusta la ruta según tu estructura
-import { FaLinkedin, FaTwitter, FaGithub, FaGlobe, FaCheckCircle, FaEdit, FaUser, FaEnvelope, FaPhone, FaIdCard, FaCalendar } from 'react-icons/fa';
+import {
+  User,
+  Mail,
+  Phone,
+  CreditCard,
+  Edit3,
+  ExternalLink,
+  Shield,
+  Briefcase,
+  GraduationCap,
+  Folder,
+  CheckCircle
+} from 'lucide-react';
+import {
+  FaLinkedin,
+  FaTwitter,
+  FaGithub,
+  FaGlobe
+} from 'react-icons/fa';
+import { useAuth } from '../../../context/userContext'; // Asegúrate que la ruta sea correcta
 
-interface ProfileViewProps {
-  onEdit: () => void;
-}
+// Helper para formatear fechas
+const formatDate = (dateString: string | null) => {
+  if (!dateString) return 'Presente';
+  return new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'short' });
+};
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ onEdit }) => {
+// Componente para una sección con título
+const SectionCard: React.FC<{ title: string; icon: React.ElementType; children: React.ReactNode }> = ({ title, icon: Icon, children }) => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div className="p-4 md:p-6 border-b border-gray-100">
+      <h2 className="text-xl font-bold text-gray-800 flex items-center">
+        <Icon className="w-6 h-6 mr-3 text-indigo-500" />
+        {title}
+      </h2>
+    </div>
+    <div className="p-4 md:p-6">
+      {children}
+    </div>
+  </div>
+);
+
+// Componente para un item en la línea de tiempo (Experiencia/Educación)
+const TimelineItem: React.FC<{ title: string; subtitle: string; dateRange: string; description: string; tags?: string[] }> = ({ title, subtitle, dateRange, description, tags }) => (
+  <div className="relative pl-8 pb-8">
+    {/* Timeline line and dot */}
+    <div className="absolute left-3 top-1 w-px h-full bg-gray-200"></div>
+    <div className="absolute left-[7px] top-1 w-3 h-3 bg-white border-2 border-indigo-500 rounded-full"></div>
+
+    <p className="text-xs text-gray-500 mb-1">{dateRange}</p>
+    <h3 className="font-semibold text-gray-900">{title}</h3>
+    <p className="text-sm text-gray-600 mb-2">{subtitle}</p>
+    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{description}</p>
+
+    {tags && tags.length > 0 && (
+      <div className="mt-3 flex flex-wrap gap-2">
+        {tags.map((tag, index) => (
+          <span key={index} className="px-2 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 rounded-full">
+            {tag}
+          </span>
+        ))}
+      </div>
+    )}
+  </div>
+);
+
+
+export const ProfileView: React.FC<{ onEdit: () => void }> = ({ onEdit }) => {
   const { user } = useAuth();
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-        <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/20">
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-              <FaUser className="w-8 h-8 text-gray-400" />
-            </div>
-            <p className="text-gray-600 text-lg">No hay información de usuario disponible</p>
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-600">No hay información de usuario disponible.</p>
       </div>
     );
   }
 
   const socialLinks = [
-    { 
-      name: 'LinkedIn', 
-      url: user.linkedin, 
-      icon: FaLinkedin, 
-      color: 'hover:text-blue-600 hover:bg-blue-50',
-      bgColor: 'bg-blue-500'
-    },
-    { 
-      name: 'Twitter', 
-      url: user.twitter, 
-      icon: FaTwitter, 
-      color: 'hover:text-blue-400 hover:bg-blue-50',
-      bgColor: 'bg-blue-400'
-    },
-    { 
-      name: 'GitHub', 
-      url: user.github, 
-      icon: FaGithub, 
-      color: 'hover:text-gray-800 hover:bg-gray-50',
-      bgColor: 'bg-gray-800'
-    },
-    { 
-      name: 'Sitio Web', 
-      url: user.sitio_web, 
-      icon: FaGlobe, 
-      color: 'hover:text-green-600 hover:bg-green-50',
-      bgColor: 'bg-green-500'
-    }
-  ].filter(link => link.url);
+    { name: 'LinkedIn', url: user.basic_info.redes_sociales.linkedin, icon: FaLinkedin, color: 'hover:text-blue-600' },
+    { name: 'Twitter', url: user.basic_info.redes_sociales.twitter, icon: FaTwitter, color: 'hover:text-blue-400' },
+    { name: 'GitHub', url: user.basic_info.redes_sociales.github, icon: FaGithub, color: 'hover:text-gray-900' },
+    { name: 'Sitio Web', url: user.basic_info.redes_sociales.sitio_web, icon: FaGlobe, color: 'hover:text-green-600' }
+  ].filter(link => link.url && link.url.trim() !== '');
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'No especificado';
-    try {
-      return new Date(dateString).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return dateString;
-    }
-  };
+  const getInitials = (firstName: string, lastName: string) => `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const latestJob = user.experiencia_laboral?.[0];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header Card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 overflow-hidden mb-8">
-          {/* Hero Section */}
-          <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 h-48 flex items-end">
-            <div className="absolute inset-0 bg-black/20"></div>
-            <div className="absolute top-6 right-6 z-10">
-              <button
-                onClick={onEdit}
-                className="inline-flex items-center px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 transition-all duration-200 border border-white/30"
-              >
-                <FaEdit className="mr-2" />
-                Editar Perfil
-              </button>
-            </div>
-            
-            {/* Profile Image */}
-            <div className="relative z-10 ml-8 mb-6">
-              <div className="relative">
-                <img 
-                  className="h-32 w-32 rounded-full object-cover ring-4 ring-white shadow-xl"
-                  src={user.foto || 'https://via.placeholder.com/150'} 
-                  alt="Foto de perfil" 
-                />
-                {user.esta_verificado && (
-                  <div className="absolute -bottom-2 -right-2 bg-blue-500 rounded-full p-2 ring-4 ring-white">
-                    <FaCheckCircle className="text-white w-4 h-4" />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-slate-50 font-sans">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-8">
 
-          {/* Profile Info */}
-          <div className="px-8 py-6">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    {user.user.first_name} {user.user.last_name}
-                  </h1>
+          {/* --- Columna Izquierda (Sidebar) --- */}
+          <aside className="lg:col-span-4 mb-8 lg:mb-0">
+            <div className="sticky top-8">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                {/* Avatar y Nombre */}
+                <div className="relative inline-block mb-4">
+                  {user.basic_info.foto ? (
+                    <img
+                      title={`la ruta para optener la imagen la cual no acepta peticiones http://46.202.88.87:8010${user.basic_info.foto} `}
+                      className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md"
+                      src={user.basic_info.foto}
+                      alt="Foto de perfil"
+                    />
+                  ) : (
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-4 border-white shadow-md flex items-center justify-center text-white font-bold text-4xl">
+                      {getInitials(user.basic_info.first_name, user.basic_info.last_name)}
+                    </div>
+                  )}
                   {user.esta_verificado && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      <FaCheckCircle className="mr-1 w-3 h-3" />
-                      Verificado
-                    </span>
+                    <div className="absolute bottom-1 right-1 bg-green-500 rounded-full p-1.5 border-2 border-white" title="Verificado">
+                      <CheckCircle className="w-4 h-4 text-white" />
+                    </div>
                   )}
                 </div>
-                
-                <p className="text-lg text-gray-500 mb-4">@{user.username}</p>
-                
-                {user.biografia && (
-                  <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                    <p className="text-gray-700 leading-relaxed">{user.biografia}</p>
-                  </div>
+
+                <h1 className="text-2xl font-bold text-gray-900">{user.basic_info.first_name} {user.basic_info.last_name}</h1>
+                <p className="text-gray-500 mb-1">@{user.basic_info.username}</p>
+                {latestJob && (
+                  <p className="font-semibold text-indigo-600">{latestJob.posicion} en {latestJob.empresa}</p>
                 )}
 
-                {/* Social Links */}
+                <button
+                  onClick={onEdit}
+                  className="mt-4 w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors duration-200"
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Editar Perfil
+                </button>
+              </div>
+
+              {/* Información de Contacto */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Contacto y Detalles</h3>
+                <ul className="space-y-3 text-sm">
+                  <li className="flex items-start">
+                    <Mail className="w-4 h-4 mr-3 mt-0.5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-700 break-all">{user.basic_info.email}</span>
+                  </li>
+                  {user.basic_info.telefono && (
+                    <li className="flex items-center">
+                      <Phone className="w-4 h-4 mr-3 text-gray-400 flex-shrink-0" />
+                      <span className="text-gray-700">{user.basic_info.telefono}</span>
+                    </li>
+                  )}
+                  {user.basic_info.documento && (
+                    <li className="flex items-center">
+                      <CreditCard className="w-4 h-4 mr-3 text-gray-400 flex-shrink-0" />
+                      <span className="text-gray-700">Doc: {user.basic_info.documento}</span>
+                    </li>
+                  )}
+                  <li className="flex items-center">
+                    <Shield className={`w-4 h-4 mr-3 flex-shrink-0 ${user.esta_verificado ? 'text-green-500' : 'text-yellow-500'}`} />
+                    <span className="text-gray-700">{user.esta_verificado ? 'Cuenta Verificada' : 'Pendiente de Verificación'}</span>
+                  </li>
+                </ul>
+
                 {socialLinks.length > 0 && (
-                  <div className="flex flex-wrap gap-3 mb-6">
-                    {socialLinks.map((social) => {
-                      const IconComponent = social.icon;
-                      return (
-                        <a
-                          key={social.name}
-                          href={social.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`inline-flex items-center px-4 py-2 rounded-xl text-gray-600 border border-gray-200 transition-all duration-200 ${social.color} hover:scale-105 hover:shadow-md`}
-                          title={social.name}
-                        >
-                          <IconComponent className="w-4 h-4 mr-2" />
-                          {social.name}
-                        </a>
-                      );
-                    })}
+                  <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center gap-4">
+                    {socialLinks.map(social => (
+                      <a
+                        key={social.name}
+                        href={social.url.startsWith('http') ? social.url : `https://${social.url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`text-gray-400 transition-colors ${social.color}`}
+                        title={social.name}
+                      >
+                        <social.icon className="w-6 h-6" />
+                      </a>
+                    ))}
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Information Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Contact Information */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                <FaEnvelope className="w-4 h-4 text-blue-600" />
-              </div>
-              Información de Contacto
-            </h2>
-            
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200">
-                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FaEnvelope className="w-4 h-4 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Email</p>
-                  <p className="text-gray-900 font-medium">{user.user.email}</p>
-                </div>
-              </div>
-
-              {user.telefono && (
-                <div className="flex items-start space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <FaPhone className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Teléfono</p>
-                    <p className="text-gray-900 font-medium">{user.telefono}</p>
-                  </div>
-                </div>
-              )}
-
-              {user.documento && (
-                <div className="flex items-start space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200">
-                  <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <FaIdCard className="w-4 h-4 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Documento</p>
-                    <p className="text-gray-900 font-medium">{user.documento}</p>
+              {/* Habilidades */}
+              {user.habilidades && user.habilidades.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4">Habilidades</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {user.habilidades.map(habilidad => (
+                      <div key={habilidad.id} className="group relative">
+                        <span className="inline-block px-3 py-1.5 text-sm font-medium bg-gray-100 text-gray-800 rounded-full cursor-pointer">
+                          {habilidad.habilidad__nombre}
+                        </span>
+                        <div className="absolute bottom-full mb-2 w-max max-w-xs p-2 text-xs text-white bg-gray-800 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                          {habilidad.tiempo_experiencia} meses de experiencia. Adquirida en {habilidad.empresa_adquisicion}.
+                          {habilidad.esta_verificado && <span className="block mt-1 text-green-400 font-bold">Verificada</span>}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
-          </div>
+          </aside>
 
-          {/* Account Details */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                <FaUser className="w-4 h-4 text-purple-600" />
-              </div>
-              Detalles de la Cuenta
-            </h2>
-            
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200">
-                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FaUser className="w-4 h-4 text-indigo-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Tipo de Usuario</p>
-                  <p className="text-gray-900 font-medium capitalize">{user.tipo_usuario || 'No especificado'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200">
-                <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FaIdCard className="w-4 h-4 text-pink-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Tipo de Naturaleza</p>
-                  <p className="text-gray-900 font-medium capitalize">{user.tipo_naturaleza || 'No especificado'}</p>
-                </div>
-              </div>
-                {/*@ts-ignore */}
-              {user.user.date_joined && (
-                <div className="flex items-start space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200">
-                  <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <FaCalendar className="w-4 h-4 text-teal-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Miembro desde</p>
-                    {/*@ts-ignore */}
-                    <p className="text-gray-900 font-medium">{formatDate(user.user.date_joined)}</p>
-                  </div>
-                </div>
+          {/* --- Columna Derecha (Contenido) --- */}
+          <main className="lg:col-span-8">
+            <div className="space-y-8">
+              {/* Sobre mí */}
+              {user.basic_info.biografia && (
+                <SectionCard title="Sobre mí" icon={User}>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{user.basic_info.biografia}</p>
+                </SectionCard>
               )}
 
-              <div className="flex items-start space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  user.esta_verificado ? 'bg-green-100' : 'bg-red-100'
-                }`}>
-                  <FaCheckCircle className={`w-4 h-4 ${
-                    user.esta_verificado ? 'text-green-600' : 'text-red-600'
-                  }`} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Estado de Verificación</p>
-                  <div className="flex items-center space-x-2">
-                    <p className="text-gray-900 font-medium">
-                      {user.esta_verificado ? 'Cuenta Verificada' : 'Sin Verificar'}
-                    </p>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      user.esta_verificado 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {user.esta_verificado ? 'Activo' : 'Pendiente'}
-                    </span>
+              {/* Experiencia Laboral */}
+              {user.experiencia_laboral && user.experiencia_laboral.length > 0 && (
+                <SectionCard title="Experiencia Laboral" icon={Briefcase}>
+                  <div className="relative">
+                    {user.experiencia_laboral.map(exp => (
+                      <TimelineItem
+                        key={exp.id}
+                        title={exp.posicion}
+                        subtitle={exp.empresa}
+                        dateRange={`${formatDate(exp.fecha_inicio)} - ${exp.actualmente ? 'Actual' : formatDate(exp.fecha_fin)}`}
+                        description={exp.funciones}
+                        tags={exp.habilidades.map(h => h.nombre)}
+                      />
+                    ))}
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+                </SectionCard>
+              )}
 
-        {/* Stats/Activity Card */}
-        <div className="mt-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
-              <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+              {/* Educación */}
+              {user.educacion && user.educacion.length > 0 && (
+                <SectionCard title="Educación" icon={GraduationCap}>
+                  <div className="relative">
+                    {user.educacion.map(edu => (
+                      <TimelineItem
+                        key={edu.id}
+                        title={edu.titulo}
+                        subtitle={`${edu.institucion} - ${edu.campo_estudio}`}
+                        dateRange={`${formatDate(edu.fecha_inicio)} - ${edu.completado ? formatDate(edu.fecha_fin) : 'En curso'}`}
+                        description={edu.completado ? 'Completado' : 'Estudios en curso.'}
+                      />
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
+
+              {/* Portafolio */}
+              {user.portafolio && user.portafolio.length > 0 && (
+                <SectionCard title="Portafolio" icon={Folder}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {user.portafolio.map(item => (
+                      <div key={item.id} className="border border-gray-200 rounded-lg overflow-hidden group">
+                        {item.imagen && (
+                          <img src={item.imagen} alt={item.titulo} className="w-full h-40 object-cover" />
+                        )}
+                        <div className="p-4">
+                          <h4 className="font-bold text-gray-800">{item.titulo}</h4>
+                          <p className="text-sm text-gray-600 mt-1 mb-3 h-16 overflow-hidden">{item.descripcion}</p>
+                          <div className="flex justify-between items-center text-xs text-gray-500">
+                            <span>{formatDate(item.fecha)}</span>
+                            {(item.url || item.archivo) && (
+                              <a
+                                href={item.url || item.archivo!}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-indigo-600 font-semibold hover:underline"
+                              >
+                                Ver más <ExternalLink className="w-3 h-3 ml-1" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
             </div>
-            Resumen del Perfil
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200">
-              <div className="text-2xl font-bold text-blue-600 mb-1">
-                {socialLinks.length}
-              </div>
-              <p className="text-blue-700 text-sm font-medium">Redes Sociales</p>
-            </div>
-            
-            <div className="text-center p-4 rounded-xl bg-gradient-to-r from-green-50 to-green-100 border border-green-200">
-              <div className="text-2xl font-bold text-green-600 mb-1">
-                {user.esta_verificado ? '100%' : '80%'}
-              </div>
-              <p className="text-green-700 text-sm font-medium">Perfil Completado</p>
-            </div>
-            
-            <div className="text-center p-4 rounded-xl bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200">
-              <div className="text-2xl font-bold text-purple-600 mb-1">
-                {user.esta_verificado ? 'PRO' : 'BÁSICO'}
-              </div>
-              <p className="text-purple-700 text-sm font-medium">Estado de Cuenta</p>
-            </div>
-          </div>
+          </main>
         </div>
       </div>
     </div>

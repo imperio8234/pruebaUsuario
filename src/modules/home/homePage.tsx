@@ -1,65 +1,73 @@
 // src/pages/HomePage.tsx
-import React, { useState, useEffect } from 'react';
-import { usuarioService, type UserProfile } from '../../services/authServices/authServices'; // Ajusta la ruta a tu servicio
+import React, { useState } from 'react';
 import { Header } from './components/header';
 import { ProfileView } from './components/ProfileView';
 import { ProfileForm } from './components/profileForm';
+import { useAuth } from '../../context/userContext';
+import { Loading } from '../common/perfilLoading';
 
 export const HomePage: React.FC = () => {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isLoading, error, clearError } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
 
-  // Efecto para cargar el perfil del usuario al montar el componente
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setIsLoading(true);
-        const userProfile = await usuarioService.getPerfil();
-        setProfile(userProfile);
-        setError(null);
-      } catch (err: any) {
-        setError(err.message || 'Ocurrió un error al cargar el perfil.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
-    fetchProfile();
-  }, []);
-
-  // Manejador para cerrar sesión
-  const handleLogout = () => {
-    usuarioService.logout();
-    // Redirigir al login, por ejemplo:
-    window.location.href = '/';
+  // Manejador para limpiar errores
+  const handleClearError = () => {
+    clearError();
   };
-
 
   // Renderizado condicional basado en el estado
   const renderContent = () => {
     if (isLoading) {
-      return <div className="text-center p-10">Cargando perfil...</div>;
-    }
-    if (error) {
-      return <div className="text-center p-10 text-red-500">{error}</div>;
-    }
-    if (profile) {
-      return isEditing ? (
-        <ProfileForm
-          onCancel={() => setIsEditing(false)}
-        />
-      ) : (
-        <ProfileView onEdit={() => setIsEditing(true)} />
+      return (
+        <Loading />
       );
     }
-    return null;
+
+    if (error) {
+      return (
+        <div className="flex items-center justify-center min-h-64">
+          <div className="text-center p-8 bg-red-50 border border-red-200 rounded-lg max-w-md">
+            <div className="text-red-600 mb-4">
+              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.996-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-red-900 mb-2">Error al cargar el perfil</h3>
+            <p className="text-red-700 mb-4">{error}</p>
+            <button
+              onClick={handleClearError}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!user) {
+      return (
+        <div className="text-center p-10">
+          <p className="text-gray-600">No se pudo cargar la información del usuario.</p>
+        </div>
+      );
+    }
+
+    return isEditing ? (
+      <ProfileForm
+        onCancel={() => setIsEditing(false)}
+        onSuccess={() => setIsEditing(false)}
+      />
+    ) : (
+      <ProfileView onEdit={() => setIsEditing(true)} />
+    );
   };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      <Header userProfile={profile} onLogout={handleLogout} />
+      <Header 
+      />
       <main className="container mx-auto px-4 py-8">
         {renderContent()}
       </main>

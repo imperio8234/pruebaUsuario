@@ -14,7 +14,6 @@ export const backApi = axios.create({
 backApi.interceptors.request.use(
   (config) => {
     const token = sessionStorage.getItem('access_token');
-    console.log("token", token)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

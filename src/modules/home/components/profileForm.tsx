@@ -1,64 +1,98 @@
-// src/components/ProfileForm.tsx
 import React, { useState, useRef, type ChangeEvent } from 'react';
-import { useAuth } from '../../../context/userContext';
-import type { UpdateProfileDto } from '../../../services/authServices/authServices';
+import type { UpdateProfileDto } from '../../../services/authServices/typeUser';
 import { showNotification } from '../../hooks/useNotify';
+import {
+  User,
+  Camera,
+  Upload,
+  X,
+  Save,
+  Phone,
+  CreditCard,
+  Type,
+  AlertCircle,
+  Briefcase
+} from 'lucide-react';
+import {
+  FaLinkedin,
+  FaTwitter,
+  FaGithub,
+  FaGlobe
+} from 'react-icons/fa';
+import { useAuth } from '../../../context/userContext';
 
-interface ProfileFormProps {
-  onCancel: () => void;
-  onSuccess?: () => void;
-}
+// --- (Componentes FormSectionCard y FormInput sin cambios) ---
+const FormSectionCard: React.FC<{ title: string; icon: React.ElementType; children: React.ReactNode; className?: string }> = ({ title, icon: Icon, children, className }) => (
+  <div className={`bg-white rounded-xl shadow-sm border border-gray-200 ${className}`}>
+    <div className="p-4 md:p-5 border-b border-gray-100">
+      <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+        <Icon className="w-5 h-5 mr-3 text-indigo-500" />
+        {title}
+      </h2>
+    </div>
+    <div className="p-4 md:p-5">
+      {children}
+    </div>
+  </div>
+);
 
-export const ProfileForm: React.FC<ProfileFormProps> = ({ onCancel, onSuccess }) => {
+const FormInput: React.FC<{ id: string; name: string; label: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; type?: string; placeholder?: string; icon: React.ElementType; disabled?: boolean; }> = ({ id, name, label, value, onChange, type = 'text', placeholder, icon: Icon, disabled }) => (
+  <div>
+    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
+      {label}
+    </label>
+    <div className="relative">
+      <Icon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <input
+        type={type}
+        name={name}
+        id={id}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors disabled:opacity-50 disabled:bg-gray-100"
+        placeholder={placeholder}
+      />
+    </div>
+  </div>
+);
+// --- (Fin de componentes sin cambios) ---
+
+export const ProfileForm: React.FC<{ onCancel: () => void; onSuccess?: () => void; }> = ({ onCancel, onSuccess }) => {
   const { user, updateProfile, updateProfilePhoto, isLoading, error, clearError } = useAuth();
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-        <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/20">
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <p className="text-gray-600 text-lg">No hay información de usuario disponible</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <div className="p-8 text-center text-gray-600">No hay información de usuario disponible.</div>;
   }
 
   const [formData, setFormData] = useState<UpdateProfileDto>({
     user: {
-      first_name: user.user.first_name,
-      last_name: user.user.last_name,
+      first_name: user.basic_info.first_name,
+      last_name: user.basic_info.last_name,
     },
-    telefono: user.telefono,
-    biografia: user.biografia,
-    documento: user.documento,
-    linkedin: user.linkedin,
-    twitter: user.twitter,
-    github: user.github,
-    sitio_web: user.sitio_web,
-    tipo_usuario: user.tipo_usuario,
-    tipo_naturaleza: user.tipo_naturaleza,
-    esta_verificado: String(user.esta_verificado)
+    telefono: user.basic_info.telefono || '',
+    biografia: user.basic_info.biografia || '',
+    documento: user.basic_info.documento || '',
+    linkedin: user.basic_info.redes_sociales.linkedin || '',
+    twitter: user.basic_info.redes_sociales.twitter || '',
+    github: user.basic_info.redes_sociales.github || '',
+    sitio_web: user.basic_info.redes_sociales.sitio_web || '',
+    tipo_usuario: user.tipo_usuario || 'freelancer',
+    esta_verificado: "true",
+    tipo_naturaleza: "natural"
   });
 
   const [newPhoto, setNewPhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false); // <-- NUEVO: Estado de carga solo para la foto
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
-    if (error) {
-      clearError();
-    }
-    
+    if (error) clearError();
+
     if (name === 'first_name' || name === 'last_name') {
       setFormData(prev => ({ ...prev, user: { ...prev.user, [name]: value } }));
     } else {
@@ -66,383 +100,218 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({ onCancel, onSuccess })
     }
   };
 
+  // <-- MODIFICADO: Lógica de validación de archivo
   const handleFileChange = (file: File) => {
     if (file) {
+      // Validar tipo de archivo
+      const allowedTypes = ['image/jpeg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        showNotification("error", "Formato no válido. Solo se permiten archivos JPG y PNG.");
+        return;
+      }
+
       setNewPhoto(file);
       setPreviewUrl(URL.createObjectURL(file));
-      
-      if (error) {
-        clearError();
-      }
+      if (error) clearError();
     }
   };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    else if (e.type === "dragleave") setDragActive(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileChange(e.dataTransfer.files[0]);
-    }
+    if (e.dataTransfer.files?.[0]) handleFileChange(e.dataTransfer.files[0]);
   };
 
+  const removePhoto = () => {
+    setNewPhoto(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // <-- MODIFICADO: handleSubmit ahora solo guarda los datos del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
       await updateProfile(formData);
-      
-      if (newPhoto) {
-        await updateProfilePhoto(newPhoto);
+      showNotification("success", "Perfil actualizado exitosamente");
+      // Si la foto se guardó antes y se quedó la preview, la limpiamos.
+      if (previewUrl) {
+        removePhoto();
       }
-      showNotification("success", "perfil actualizado")
       onSuccess?.();
-      setNewPhoto(null);
-      setPreviewUrl(null);
-      
-    } catch (error) {
-      console.error('Error al actualizar perfil:', error);
+    } catch (err) {
+      console.error('Error al actualizar perfil:', err);
+      showNotification("error", "No se pudo actualizar el perfil. Revisa los campos.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // <-- NUEVO: Función para manejar solo la subida de la foto
+  const handlePhotoSubmit = async () => {
+    if (!newPhoto) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      await updateProfilePhoto(newPhoto);
+      showNotification("success", "Foto de perfil actualizada.");
+      setNewPhoto(null);
+      setPreviewUrl(null);
+      // La foto actualizada se mostrará desde el `user context` después de que se recargue.
+    } catch (err) {
+      console.error('Error al actualizar la foto:', err);
+      showNotification("error", "No se pudo actualizar la foto.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const getInitials = (firstName: string, lastName: string) => `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+
+  const isFormLoading = isLoading || isSubmitting;
+  const isAnyActionLoading = isFormLoading || isUploadingPhoto; // <-- NUEVO: Estado de carga general
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-      <div className="max-w-4xl mx-auto">
-        <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Editar Perfil</h1>
-                <p className="text-blue-100">Actualiza tu información personal</p>
-              </div>
-              <div className="hidden sm:block">
-                <svg className="w-16 h-16 text-white/20" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
+    <div className="min-h-screen bg-slate-50 font-sans">
+      <div className="container mx-auto px-4 py-8">
+        <form onSubmit={handleSubmit}>
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Editar Perfil</h1>
+            <p className="text-gray-600 mt-1">Actualiza tu información personal y profesional.</p>
           </div>
 
-          <div className="p-8">
-            {/* Error Alert */}
-            {error && (
-              <div className="mb-8 relative">
-                <div className="bg-red-50 border-l-4 border-red-400 p-6 rounded-r-lg shadow-sm">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <svg className="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-lg font-medium text-red-800 mb-1">Error al actualizar</h3>
-                      <p className="text-red-700">{error}</p>
-                    </div>
-                  </div>
-                </div>
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start">
+              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <h3 className="font-medium text-red-800">Error al actualizar</h3>
+                <p className="text-sm text-red-700">{error}</p>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Photo Upload Section */}
-            <div className="mb-12">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Foto de Perfil
-              </h2>
-              
-              <div className="flex flex-col sm:flex-row items-center space-y-6 sm:space-y-0 sm:space-x-8">
-                <div className="relative">
-                  <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white shadow-xl">
-                    <img
-                      src={previewUrl || user.foto || 'https://via.placeholder.com/150'}
-                      alt="Vista previa"
-                      className="w-full h-full object-cover"
-                    />
+          <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-8">
+            {/* --- Columna Izquierda --- */}
+            <aside className="lg:col-span-4 space-y-6">
+              <FormSectionCard title="Foto de Perfil" icon={Camera}>
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="relative">
+                    {previewUrl || user.basic_info.foto ? (
+                      <img
+                        title={`la ruta para optener la imagen la cual no acepta peticiones http://46.202.88.87:8010${user.basic_info.foto} `}
+                        src={previewUrl || `${import.meta.env.VITE_API_DOCS}${user.basic_info.foto}`} alt="Vista previa" className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md" />
+                    ) : (
+                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-4xl border-4 border-white shadow-md">
+                        {getInitials(user.basic_info.first_name, user.basic_info.last_name)}
+                      </div>
+                    )}
+                    {(isFormLoading || isUploadingPhoto) && <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center"><div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div></div>}
+                    {previewUrl && <button type="button" onClick={removePhoto} className="absolute -top-1 -right-1 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"><X className="w-4 h-4" /></button>}
                   </div>
-                  {(isLoading || isSubmitting) && (
-                    <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                    </div>
-                  )}
-                </div>
 
-                <div className="flex-1">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={fileInputRef}
-                    onChange={(e) => e.target.files && handleFileChange(e.target.files[0])}
-                    className="hidden"
-                    disabled={isLoading || isSubmitting}
-                  />
-                  
-                  <div
-                    className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ${
-                      dragActive
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-                    }`}
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                  >
-                    <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <p className="text-lg font-medium text-gray-700 mb-2">
-                      Arrastra una imagen aquí
-                    </p>
-                    <p className="text-gray-500 mb-4">o</p>
+                  {/* <-- MODIFICADO: Se añade el botón para guardar solo la foto --> */}
+                  {previewUrl && (
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isLoading || isSubmitting}
-                      className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+                      onClick={handlePhotoSubmit}
+                      disabled={isUploadingPhoto || isFormLoading}
+                      className="w-full px-4 py-2.5 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:bg-indigo-400 transition-colors flex items-center justify-center"
                     >
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                      {isLoading ? 'Cargando...' : 'Seleccionar Archivo'}
+                      {isUploadingPhoto ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Guardando foto...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Guardar Foto
+                        </>
+                      )}
                     </button>
-                    <p className="text-xs text-gray-500 mt-3">PNG, JPG, GIF hasta 5MB</p>
+                  )}
+
+                  {/* <-- MODIFICADO: Se restringen los tipos de archivo --> */}
+                  <input type="file" accept="image/jpeg, image/png" ref={fileInputRef} onChange={(e) => e.target.files && handleFileChange(e.target.files[0])} className="hidden" disabled={isAnyActionLoading} />
+
+                  <div
+                    className={`w-full border-2 border-dashed rounded-lg p-4 text-center transition-all duration-200 ${isAnyActionLoading ? 'cursor-not-allowed bg-gray-100' : 'cursor-pointer'} ${dragActive ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-indigo-400'}`}
+                    onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} onClick={() => !isAnyActionLoading && fileInputRef.current?.click()}
+                  >
+                    <Upload className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Arrastra o haz clic</p>
+                    <p className="text-xs text-gray-500">JPG o PNG (máx 5MB)</p>
                   </div>
                 </div>
-              </div>
-            </div>
+              </FormSectionCard>
 
-            {/* Form Fields */}
-            <div className="space-y-8">
-              {/* Personal Information */}
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  Información Personal
-                </h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="form-group">
-                    <label htmlFor="first_name" className="block text-sm font-semibold text-gray-700 mb-2">
-                      Nombre
-                    </label>
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        name="first_name" 
-                        id="first_name" 
-                        value={formData.user.first_name} 
-                        onChange={handleChange} 
-                        disabled={isLoading || isSubmitting}
-                        className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white transition-all duration-200 disabled:opacity-50 disabled:bg-gray-100 text-gray-800"
-                        placeholder="Ingresa tu nombre"
-                      />
-                    </div>
+              <FormSectionCard title="Información Principal" icon={User}>
+                <div className="space-y-4">
+                  <FormInput id="first_name" name="first_name" label="Nombre" value={formData.user.first_name} onChange={handleChange} placeholder="Tu nombre" icon={Type} disabled={isAnyActionLoading} />
+                  <FormInput id="last_name" name="last_name" label="Apellido" value={formData.user.last_name} onChange={handleChange} placeholder="Tu apellido" icon={Type} disabled={isAnyActionLoading} />
+                  <FormInput id="telefono" name="telefono" label="Teléfono" value={formData.telefono} onChange={handleChange} type="tel" placeholder="+57 300 123 4567" icon={Phone} disabled={isAnyActionLoading} />
+                  <FormInput id="documento" name="documento" label="Documento" value={formData.documento} onChange={handleChange} placeholder="Número de documento" icon={CreditCard} disabled={isAnyActionLoading} />
+                </div>
+              </FormSectionCard>
+            </aside>
+
+            {/* --- Columna Derecha --- */}
+            <main className="lg:col-span-8 space-y-6">
+              <FormSectionCard title="Sobre Mí y Cuenta" icon={Briefcase}>
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="biografia" className="block text-sm font-medium text-gray-700 mb-2">Biografía</label>
+                    <textarea name="biografia" id="biografia" value={formData.biografia} onChange={handleChange} rows={5} disabled={isAnyActionLoading} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors disabled:opacity-50 disabled:bg-gray-100 resize-none" placeholder="Una breve descripción sobre ti, tus habilidades y experiencia..."></textarea>
                   </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="last_name" className="block text-sm font-semibold text-gray-700 mb-2">
-                      Apellido
-                    </label>
-                    <input 
-                      type="text" 
-                      name="last_name" 
-                      id="last_name" 
-                      value={formData.user.last_name} 
-                      onChange={handleChange} 
-                      disabled={isLoading || isSubmitting}
-                      className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white transition-all duration-200 disabled:opacity-50 disabled:bg-gray-100 text-gray-800"
-                      placeholder="Ingresa tu apellido"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="telefono" className="block text-sm font-semibold text-gray-700 mb-2">
-                      Teléfono
-                    </label>
-                    <input 
-                      type="tel" 
-                      name="telefono" 
-                      id="telefono" 
-                      value={formData.telefono} 
-                      onChange={handleChange} 
-                      disabled={isLoading || isSubmitting}
-                      className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white transition-all duration-200 disabled:opacity-50 disabled:bg-gray-100 text-gray-800"
-                      placeholder="+57 123 456 7890"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="documento" className="block text-sm font-semibold text-gray-700 mb-2">
-                      Documento
-                    </label>
-                    <input 
-                      type="text" 
-                      name="documento" 
-                      id="documento" 
-                      value={formData.documento} 
-                      onChange={handleChange} 
-                      disabled={isLoading || isSubmitting}
-                      className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white transition-all duration-200 disabled:opacity-50 disabled:bg-gray-100 text-gray-800"
-                      placeholder="Número de documento"
-                    />
+                  <div>
+                    <label htmlFor="tipo_usuario" className="block text-sm font-medium text-gray-700 mb-2">Tipo de Usuario</label>
+                    <select name="tipo_usuario" id="tipo_usuario" value={formData.tipo_usuario} onChange={handleChange} disabled={isAnyActionLoading} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors disabled:opacity-50 disabled:bg-gray-100">
+                      <option value="freelancer">Freelancer</option>
+                      <option value="empresa">Empresa</option>
+                      <option value="estudiante">Estudiante</option>
+                      <option value="profesional">Profesional</option>
+                    </select>
                   </div>
                 </div>
-                
-                <div className="mt-6">
-                  <label htmlFor="biografia" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Biografía
-                  </label>
-                  <textarea 
-                    name="biografia" 
-                    id="biografia" 
-                    value={formData.biografia} 
-                    onChange={handleChange} 
-                    rows={4} 
-                    disabled={isLoading || isSubmitting}
-                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white transition-all duration-200 disabled:opacity-50 disabled:bg-gray-100 text-gray-800 resize-none"
-                    placeholder="Cuéntanos un poco sobre ti..."
-                  />
+              </FormSectionCard>
+
+              <FormSectionCard title="Redes Sociales y Sitio Web" icon={FaGlobe}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormInput id="linkedin" name="linkedin" label="LinkedIn" value={formData.linkedin} onChange={handleChange} type="url" placeholder="URL de tu perfil" icon={FaLinkedin} disabled={isAnyActionLoading} />
+                  <FormInput id="github" name="github" label="GitHub" value={formData.github} onChange={handleChange} type="url" placeholder="URL de tu perfil" icon={FaGithub} disabled={isAnyActionLoading} />
+                  <FormInput id="twitter" name="twitter" label="Twitter" value={formData.twitter} onChange={handleChange} type="url" placeholder="URL de tu perfil" icon={FaTwitter} disabled={isAnyActionLoading} />
+                  <FormInput id="sitio_web" name="sitio_web" label="Sitio Web" value={formData.sitio_web} onChange={handleChange} type="url" placeholder="https://tu-sitio.com" icon={FaGlobe} disabled={isAnyActionLoading} />
                 </div>
-              </div>
+              </FormSectionCard>
+            </main>
+          </div>
 
-              {/* Social Media */}
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9m0 9l-3-3m0 0l-3 3" />
-                  </svg>
-                  Redes Sociales
-                </h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="form-group">
-                    <label htmlFor="linkedin" className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <svg className="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.338 16.338H13.67V12.16c0-.995-.017-2.277-1.387-2.277-1.39 0-1.601 1.086-1.601 2.207v4.248H8.014v-8.59h2.559v1.174h.037c.356-.675 1.227-1.387 2.526-1.387 2.703 0 3.203 1.778 3.203 4.092v4.711zM5.005 6.575a1.548 1.548 0 11-.003-3.096 1.548 1.548 0 01.003 3.096zm-1.337 9.763H6.34v-8.59H3.667v8.59zM17.668 1H2.328C1.595 1 1 1.581 1 2.298v15.403C1 18.418 1.595 19 2.328 19h15.34c.734 0 1.332-.582 1.332-1.299V2.298C19 1.581 18.402 1 17.668 1z" clipRule="evenodd" />
-                      </svg>
-                      LinkedIn
-                    </label>
-                    <input 
-                      type="url" 
-                      name="linkedin" 
-                      id="linkedin" 
-                      value={formData.linkedin} 
-                      onChange={handleChange} 
-                      disabled={isLoading || isSubmitting}
-                      className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white transition-all duration-200 disabled:opacity-50 disabled:bg-gray-100 text-gray-800"
-                      placeholder="https://linkedin.com/in/usuario"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="github" className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <svg className="w-4 h-4 mr-2 text-gray-800" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clipRule="evenodd" />
-                      </svg>
-                      GitHub
-                    </label>
-                    <input 
-                      type="url" 
-                      name="github" 
-                      id="github" 
-                      value={formData.github} 
-                      onChange={handleChange} 
-                      disabled={isLoading || isSubmitting}
-                      className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white transition-all duration-200 disabled:opacity-50 disabled:bg-gray-100 text-gray-800"
-                      placeholder="https://github.com/usuario"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="twitter" className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <svg className="w-4 h-4 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M6.29 18.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0020 3.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.073 4.073 0 01.8 7.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 010 16.407a11.616 11.616 0 006.29 1.84" />
-                      </svg>
-                      Twitter
-                    </label>
-                    <input 
-                      type="url" 
-                      name="twitter" 
-                      id="twitter" 
-                      value={formData.twitter} 
-                      onChange={handleChange} 
-                      disabled={isLoading || isSubmitting}
-                      className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white transition-all duration-200 disabled:opacity-50 disabled:bg-gray-100 text-gray-800"
-                      placeholder="https://twitter.com/usuario"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="sitio_web" className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <svg className="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9m0 9l-3-3m0 0l-3 3" />
-                      </svg>
-                      Sitio Web
-                    </label>
-                    <input 
-                      type="url" 
-                      name="sitio_web" 
-                      id="sitio_web" 
-                      value={formData.sitio_web} 
-                      onChange={handleChange} 
-                      disabled={isLoading || isSubmitting}
-                      className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white transition-all duration-200 disabled:opacity-50 disabled:bg-gray-100 text-gray-800"
-                      placeholder="https://misitio.com"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="mt-12 flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4 pt-8 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={isSubmitting}
-                className="w-full sm:w-auto px-8 py-3 border-2 border-gray-300 rounded-xl text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
+          {/* --- Botones de Acción --- */}
+          <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
+              <button type="button" onClick={onCancel} disabled={isAnyActionLoading} className="w-full sm:w-auto px-6 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors">
                 Cancelar
               </button>
-              <button
-                type="submit"
-                disabled={isLoading || isSubmitting}
-                className="w-full sm:w-auto px-8 py-3 border-2 border-transparent rounded-xl shadow-lg text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-xl transform hover:-translate-y-0.5"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+              <button type="submit" disabled={isAnyActionLoading} className="w-full sm:w-auto px-6 py-2.5 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:bg-indigo-400 transition-colors flex items-center justify-center">
+                {isFormLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                     Guardando...
-                  </span>
+                  </>
                 ) : (
-                  <span className="flex items-center justify-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
                     Guardar Cambios
-                  </span>
+                  </>
                 )}
               </button>
             </div>

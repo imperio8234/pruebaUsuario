@@ -1,55 +1,5 @@
-import { backApi } from "./baseApi";
-
-// Interfaces
-export interface LoginCredentials {
-  username: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  access: string;
-  refresh: string;
-}
-
-export interface UserProfile {
-  id: number;
-  username: string;
-  user: {
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
-  telefono: string;
-  tipo_usuario: string;
-  tipo_naturaleza: string;
-  biografia: string;
-  documento: string;
-  linkedin: string;
-  twitter: string;
-  github: string;
-  sitio_web: string;
-  esta_verificado: boolean;
-  foto?: string;
-  fecha_creacion: string;
-  fecha_actualizacion: string;
-}
-
-export interface UpdateProfileDto {
-  user: {
-    first_name: string;
-    last_name: string;
-  };
-  telefono: string;
-  tipo_usuario: string;
-  tipo_naturaleza: string;
-  biografia: string;
-  documento: string;
-  linkedin: string;
-  twitter: string;
-  github: string;
-  sitio_web: string;
-  esta_verificado: string; // La API espera string, no boolean
-}
+import { backApi } from "../baseApi";
+import type { LoginCredentials, LoginResponse, UpdateProfileDto, UserProfile, UserProfileData, UserProfileResponse } from "./typeUser";
 
 export const usuarioService = {
   /**
@@ -57,28 +7,45 @@ export const usuarioService = {
    */
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      const res = await backApi.post('/auth/login/', credentials);
-      console.log("token", res.data.access_token)
-      // Guardar tokens en sessionStorage
-      if (res.data.access_token) {
-        sessionStorage.setItem('access_token', res.data.access_token);
+      const res = await backApi.post('/login/', credentials);
+      const { access, refresh } = res.data.data;
+      
+      // Guardar tokens en sessionStorage (corregido: usar los nombres correctos)
+      if (access) {
+        sessionStorage.setItem('access_token', access);
       }
-      if (res.data.refresh_token) {
-        sessionStorage.setItem('refresh_token', res.data.refresh_token);
+      if (refresh) {
+        sessionStorage.setItem('refresh_token', refresh);
       }
       
-      return res.data;
+      return res.data.data;
     } catch (error: any) {
       throw new Error(error?.response?.data?.error || "Error al iniciar sesión");
     }
   },
 
   /**
-   * Obtener perfil del usuario autenticado
+   * Obtener perfil del usuario autenticado (nueva estructura)
    */
-  async getPerfil(): Promise<UserProfile> {
+  async getPerfil(): Promise<UserProfileResponse> {
+    console.log("opteniendo perfil de usuario")
     try {
-      const res = await backApi.get('/auth/me');
+      const res = await backApi.get('/perfil');
+      console.log("data", res.data);
+      return res.data;
+    } catch (error: any) {
+      throw new Error(error?.response?.data?.error || "Error al obtener perfil");
+    }
+  },
+
+  /**
+   * Obtener perfil del usuario autenticado (formato legacy)
+   * @deprecated Usar getPerfil() para la nueva estructura
+   */
+  async getPerfilLegacy(): Promise<UserProfile> {
+    try {
+      const res = await backApi.get('/perfil');
+      console.log("data", res.data);
       return res.data;
     } catch (error: any) {
       throw new Error(error?.response?.data?.error || "Error al obtener perfil");
@@ -90,7 +57,7 @@ export const usuarioService = {
    */
   async updatePerfil(data: UpdateProfileDto): Promise<UserProfile> {
     try {
-      const res = await backApi.put('/usuario/perfil', data);
+      const res = await backApi.put('/usuario/perfil/', data);
       return res.data;
     } catch (error: any) {
       throw new Error(error?.response?.data?.error || "Error al actualizar perfil");
@@ -105,7 +72,7 @@ export const usuarioService = {
       const formData = new FormData();
       formData.append('foto', file);
       
-      const res = await backApi.patch('/usuario/perfil/foto/', formData, {
+      const res = await backApi.patch('/perfil/foto/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -147,6 +114,63 @@ export const usuarioService = {
   },
 
   /**
+   * Métodos de utilidad para transformar datos
+   */
+  utils: {
+    /**
+     * Transformar UserProfileData a formato legacy para compatibilidad
+     */
+    transformToLegacyFormat(profileData: UserProfileData): UserProfile {
+      const { basic_info } = profileData;
+      return {
+        id: basic_info.id_usuario,
+        username: basic_info.username,
+        user: {
+          first_name: basic_info.first_name,
+          last_name: basic_info.last_name,
+          email: basic_info.email,
+        },
+        telefono: basic_info.telefono,
+        tipo_usuario: profileData.tipo_usuario,
+        tipo_naturaleza: "", // No disponible en nueva estructura
+        biografia: basic_info.biografia,
+        documento: basic_info.documento,
+        linkedin: basic_info.redes_sociales.linkedin,
+        twitter: basic_info.redes_sociales.twitter,
+        github: basic_info.redes_sociales.github,
+        sitio_web: basic_info.redes_sociales.sitio_web,
+        esta_verificado: profileData.esta_verificado,
+        foto: basic_info.foto,
+        fecha_creacion: "", // No disponible en nueva estructura
+        fecha_actualizacion: "", // No disponible en nueva estructura
+      };
+    },
+
+    /**
+     * Transformar formato legacy a UpdateProfileDto
+     */
+    transformToUpdateDto(profileData: UserProfileData): UpdateProfileDto {
+      const { basic_info } = profileData;
+      return {
+        user: {
+          first_name: basic_info.first_name,
+          last_name: basic_info.last_name,
+        },
+        telefono: basic_info.telefono,
+        tipo_usuario: profileData.tipo_usuario,
+        tipo_naturaleza: "", // No disponible en nueva estructura
+        biografia: basic_info.biografia,
+        documento: basic_info.documento,
+        linkedin: basic_info.redes_sociales.linkedin,
+        twitter: basic_info.redes_sociales.twitter,
+        github: basic_info.redes_sociales.github,
+        sitio_web: basic_info.redes_sociales.sitio_web,
+        esta_verificado: profileData.esta_verificado ? "true" : "false",
+      };
+    }
+  },
+
+  /**
    * Métodos de utilidad para validaciones
    */
   validators: {
@@ -181,11 +205,11 @@ export const usuarioService = {
     validateProfileFields(data: UpdateProfileDto): string[] {
       const errors: string[] = [];
       
-      if (!data.user.first_name?.trim()) {
+      if (!data.user?.first_name?.trim()) {
         errors.push("El nombre es requerido");
       }
       
-      if (!data.user.last_name?.trim()) {
+      if (!data.user?.last_name?.trim()) {
         errors.push("El apellido es requerido");
       }
       
@@ -195,6 +219,11 @@ export const usuarioService = {
       
       if (!data.documento?.trim()) {
         errors.push("El documento es requerido");
+      }
+
+      // Validar email si está presente
+      if (data.user && 'email' in data.user && data.user.email && !this.isValidEmail(data.user.email as any)) {
+        errors.push("El email no tiene un formato válido");
       }
       
       // Validar URLs si están presentes
@@ -253,6 +282,24 @@ export const usuarioService = {
       }
       
       return errors;
+    },
+
+    /**
+     * Validar teléfono (formato básico)
+     */
+    validatePhone(phone: string): boolean {
+      // Validación básica: solo números, espacios, guiones y paréntesis
+      const phoneRegex = /^[\d\s\-\(\)\+]+$/;
+      return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 7;
+    },
+
+    /**
+     * Validar documento (formato básico)
+     */
+    validateDocument(document: string): boolean {
+      // Validación básica: solo números y letras
+      const docRegex = /^[A-Za-z0-9]+$/;
+      return docRegex.test(document) && document.length >= 5;
     }
   }
 };

@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
-import { usuarioService, type LoginCredentials, type UserProfile, type UpdateProfileDto } from '../services/authServices/authServices';
+import {type LoginCredentials, type UserProfileData, type UpdateProfileDto } from '../services/authServices/typeUser';
+import { usuarioService } from '../services/authServices/authServices';
 
 // Tipos para el estado
 interface AuthState {
   isAuthenticated: boolean;
-  user: UserProfile | null;
+  user: UserProfileData | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -12,11 +13,11 @@ interface AuthState {
 // Tipos para las acciones
 type AuthAction =
   | { type: 'AUTH_START' }
-  | { type: 'AUTH_SUCCESS'; payload: UserProfile }
+  | { type: 'AUTH_SUCCESS'; payload: UserProfileData }
   | { type: 'AUTH_ERROR'; payload: string }          // Solo para errores de autenticación
-  | { type: 'OPERATION_ERROR'; payload: string }     // Para errores de operaciones (nuevo)
+  | { type: 'OPERATION_ERROR'; payload: string }     // Para errores de operaciones
   | { type: 'LOGOUT' }
-  | { type: 'UPDATE_USER'; payload: UserProfile }
+  | { type: 'UPDATE_USER'; payload: UserProfileData }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'CLEAR_ERROR' };
 
@@ -35,7 +36,7 @@ interface AuthContextType {
   
   // Utilidades
   isAuthenticated: boolean;
-  user: UserProfile | null;
+  user: UserProfileData | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -182,11 +183,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loadUserProfile = async (): Promise<void> => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const userProfile = await usuarioService.getPerfil();
-      dispatch({ type: 'AUTH_SUCCESS', payload: userProfile });
+      const userProfileResponse = await usuarioService.getPerfil();
+      // Extraer los datos del usuario de la respuesta
+      dispatch({ type: 'AUTH_SUCCESS', payload: userProfileResponse.data });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al cargar perfil';
-      dispatch({ type: 'AUTH_ERROR', payload: errorMessage }); // ✅ AUTH_ERROR porque es crítico
+      dispatch({ type: 'AUTH_ERROR', payload: errorMessage });
       // Si hay error al cargar el perfil, hacer logout automático
       usuarioService.logout();
       throw error;
@@ -197,7 +199,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateProfile = async (data: UpdateProfileDto): Promise<void> => {
     console.log("actualizando datos", data);
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
+      //dispatch({ type: 'SET_LOADING', payload: true });
       
       // Validar campos
       const validationErrors = usuarioService.validators.validateProfileFields(data);
@@ -205,12 +207,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error(validationErrors.join(', '));
       }
 
-      // Actualizar perfil
-      const updatedUser = await usuarioService.updatePerfil(data);
-      dispatch({ type: 'UPDATE_USER', payload: updatedUser });
+      // Actualizar perfil - nota: el servicio devuelve UserProfile (legacy)
+       await usuarioService.updatePerfil(data);
+      
+      // Recargar el perfil completo para obtener la estructura actualizada
+      const userProfileResponse = await usuarioService.getPerfil();
+      dispatch({ type: 'UPDATE_USER', payload: userProfileResponse.data });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al actualizar perfil';
-      // ✅ Cambio: usar OPERATION_ERROR en lugar de AUTH_ERROR
       dispatch({ type: 'OPERATION_ERROR', payload: errorMessage });
       throw error;
     } finally {
@@ -222,7 +226,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateProfilePhoto = async (file: File): Promise<void> => {
     console.log("actualizando foto", file);
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
+      //dispatch({ type: 'SET_LOADING', payload: true });
       
       // Validar archivo
       const validationErrors = usuarioService.validators.validateImageFile(file);
@@ -230,12 +234,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error(validationErrors.join(', '));
       }
 
-      // Actualizar foto
-      const updatedUser = await usuarioService.updateFoto(file);
-      dispatch({ type: 'UPDATE_USER', payload: updatedUser });
+      // Actualizar foto - nota: el servicio devuelve UserProfile (legacy)
+      // pero necesitamos convertirlo a UserProfileData
+      const updatedUserLegacy = await usuarioService.updateFoto(file);
+      
+      // Recargar el perfil completo para obtener la estructura actualizada
+      const userProfileResponse = await usuarioService.getPerfil();
+      dispatch({ type: 'UPDATE_USER', payload: userProfileResponse.data });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al actualizar foto';
-      // ✅ Cambio: usar OPERATION_ERROR en lugar de AUTH_ERROR
       dispatch({ type: 'OPERATION_ERROR', payload: errorMessage });
       throw error;
     } finally {
@@ -295,4 +302,30 @@ export const useAuthGuard = () => {
     isLoading,
     canAccess: isAuthenticated && !isLoading,
   };
+};
+
+// Hooks adicionales para acceso específico a datos del usuario
+export const useUserBasicInfo = () => {
+  const { user } = useAuth();
+  return user?.basic_info || null;
+};
+
+export const useUserEducation = () => {
+  const { user } = useAuth();
+  return user?.educacion || [];
+};
+
+export const useUserExperience = () => {
+  const { user } = useAuth();
+  return user?.experiencia_laboral || [];
+};
+
+export const useUserSkills = () => {
+  const { user } = useAuth();
+  return user?.habilidades || [];
+};
+
+export const useUserPortfolio = () => {
+  const { user } = useAuth();
+  return user?.portafolio || [];
 };
